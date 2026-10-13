@@ -1,8 +1,18 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createExplosionLayout} from '../app/explosion-layout.ts';
-import {PointerTap} from '../app/pointer-tap.ts';
-import {atlasTools} from '../app/agent-tools.ts';
+import {createServer} from 'vite';
+
+// Use the same TypeScript transform as the app on every supported Node 22
+// release; native .ts imports are not enabled consistently across that range.
+const server=await createServer({configFile:false,server:{middlewareMode:true},appType:'custom'});
+let createExplosionLayout,PointerTap,atlasTools;
+try {
+  ({createExplosionLayout}=await server.ssrLoadModule('/app/explosion-layout.ts'));
+  ({PointerTap}=await server.ssrLoadModule('/app/pointer-tap.ts'));
+  ({atlasTools}=await server.ssrLoadModule('/app/agent-tools.ts'));
+} finally {
+  await server.close();
+}
 
 for (const file of ['atlas.json']) {
   const atlas=JSON.parse(await readFile(new URL(`../public/models/${file}`,import.meta.url)));
